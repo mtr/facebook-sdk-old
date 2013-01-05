@@ -400,6 +400,9 @@ class GraphAPI(object):
             response = json.loads(response)
             raise GraphAPIError(response)
 
+    def revoke_auth(self, id):
+        self.request(id + '/permissions', post_args={"method": "delete"})
+
 
 class GraphAPIError(Exception):
     def __init__(self, result):
