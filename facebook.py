@@ -61,6 +61,24 @@ except ImportError:
     from cgi import parse_qs
 
 
+class _Request(urllib2.Request, object):
+    def __init__(self, url, data=None, headers={}, origin_req_host=None,
+                 unverifiable=False, method=None):
+        self.method = method
+
+        urllib2.Request.__init__(self, url, data, headers, origin_req_host,
+                                 unverifiable)
+
+    def get_method(self):
+        if self.method is not None:
+            return self.method
+
+        return super(_Request, self).get_method()
+
+
+_url_opener = urllib2.build_opener()
+
+
 class GraphAPI(object):
     """A client for the Facebook Graph API.
 
@@ -273,7 +291,7 @@ class GraphAPI(object):
         content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
         return content_type, body
 
-    def request(self, path, args=None, post_args=None):
+    def request(self, path, args=None, post_args=None, method=None):
         """Fetches the given path in the Graph API.
 
         We translate args to a valid query string. If post_args is
@@ -290,9 +308,10 @@ class GraphAPI(object):
                 args["access_token"] = self.access_token
         post_data = None if post_args is None else urllib.urlencode(post_args)
         try:
-            file = urllib2.urlopen("https://graph.facebook.com/" + path + "?" +
-                                   urllib.urlencode(args),
-                                   post_data, timeout=self.timeout)
+            request = _Request('https://graph.facebook.com/' + path + '?' +
+                               urllib.urlencode(args), data=post_data,
+                               method=method)
+            file = _url_opener.open(request, timeout=self.timeout)
         except urllib2.HTTPError, e:
             response = _parse_json(e.read())
             raise GraphAPIError(response)
@@ -300,8 +319,10 @@ class GraphAPI(object):
             # Timeout support for Python <2.6
             if self.timeout:
                 socket.setdefaulttimeout(self.timeout)
-            file = urllib2.urlopen("https://graph.facebook.com/" + path + "?" +
-                                   urllib.urlencode(args), post_data)
+            request = _Request('https://graph.facebook.com/' + path + '?' +
+                               urllib.urlencode(args), data=post_data,
+                               method=method)
+            file = _url_opener.open(request)
         try:
             fileInfo = file.info()
             if fileInfo.maintype == 'text':
@@ -401,7 +422,7 @@ class GraphAPI(object):
             raise GraphAPIError(response)
 
     def revoke_auth(self, id):
-        self.request(id + '/permissions', post_args={"method": "delete"})
+        return self.request('me/permissions', method='DELETE')
 
 
 class GraphAPIError(Exception):
