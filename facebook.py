@@ -476,11 +476,8 @@ def get_user_from_cookie(cookies, app_id, app_secret):
     parsed_request = parse_signed_request(cookie, app_secret)
     if not parsed_request:
         return None
-    try:
-        result = get_access_token_from_code(parsed_request["code"], "",
+    result = get_access_token_from_code(parsed_request["code"], "",
                                             app_id, app_secret)
-    except GraphAPIError:
-        return None
     result["uid"] = parsed_request["user_id"]
     return result
 
