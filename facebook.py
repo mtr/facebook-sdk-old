@@ -129,6 +129,11 @@ class GraphAPI(object):
         """Fetchs the connections for given object."""
         return self.request(id + "/" + connection_name, args)
 
+    def get_permissions(self, id="me", **args):
+        """Fetches the permissions for a given id."""
+        response = self.request(id + '/' + 'permissions', args)
+        return response['data'][0]
+
     def put_object(self, parent_object, connection_name, **data):
         """Writes the given object to the graph, connected to the given parent.
 
